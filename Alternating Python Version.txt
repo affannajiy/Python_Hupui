@@ -1,0 +1,13 @@
+Check Python Version(s) Installed
+Open Command Prompt
+C:\>py -0
+
+Check which Python is being used
+C:\>python --version
+
+Changing Python Versions
+C:\>py -2
+C:\>py -3
+
+To Exit Python Console
+>>> exit()

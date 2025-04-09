@@ -1,0 +1,14 @@
+Quadrant: Do First
+(Important & Urgent)
+- T1
+
+Quadrant: Do Later
+(Important but Not Urgent)
+- T2
+
+Quadrant: Delegate
+(Not Important but Urgent)
+
+Quadrant: Eliminate
+(Not Important & Not Urgent)
+
