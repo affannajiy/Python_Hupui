@@ -1,4 +1,4 @@
-crude_oil_list = []
+def crude_oil_list = []
 
 def refinery_system(crude_oil_list):
     total_crude_oil = sum(crude_oil_list) #sum of oil
