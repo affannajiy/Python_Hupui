@@ -7,10 +7,12 @@
 #Displays or saves the corresponding parse tree.
 
 
-#Dependencies Required:
+"""
+Dependencies Required:
 pip install nltk python-docx spacy
 python -m nltk.downloader punkt
 python -m spacy download en_core_web_sm
+"""
 
 #Full Python Script (with nltk + spaCy support)
 

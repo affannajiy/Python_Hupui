@@ -1,5 +1,5 @@
 #Option A: pretty_print() in NLTK (built-in)
-tree.pretty_print()
+#tree.pretty_print()
 
 #Option B: Save Parse Tree as an Image Using pydot + graphviz
 import nltk

@@ -1,10 +1,10 @@
 import nltk
 from nltk import CFG
 
-# Download tokenizer once
+#Download tokenizer once
 nltk.download('punkt')
 
-# Define ambiguous grammar
+#User defined grammar
 ambiguous_grammar = CFG.fromstring("""
     S -> NP VP
     NP -> Det N | Det N PP | 'I'

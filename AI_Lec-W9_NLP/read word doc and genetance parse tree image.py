@@ -7,14 +7,12 @@
 #Displays or saves the corresponding parse tree.
 
 
-#Dependencies Required:
+"""
+Dependencies Required:
 pip install nltk python-docx spacy
 python -m nltk.downloader punkt
 python -m spacy download en_core_web_sm
-pip install nltk spacy python-docx cairosvg
-python -m nltk.downloader punkt
-python -m spacy download en_core_web_sm
-
+"""
 
 #Python Code to Generate and Save Parse Tree Images
 
