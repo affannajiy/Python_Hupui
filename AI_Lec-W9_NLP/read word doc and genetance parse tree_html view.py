@@ -1,20 +1,9 @@
-#Takes a Word document (.docx) as input from the user.
-
-#Extracts all sentences from the document.
-
-#Parses each sentence using a Context-Free Grammar (CFG) or dependency parser.
-
-#Displays or saves the corresponding parse tree.
-
-
 """
 Dependencies Required:
 pip install nltk python-docx spacy
 python -m nltk.downloader punkt
 python -m spacy download en_core_web_sm
 """
-
-#Full Python Script (with nltk + spaCy support)
 
 import nltk
 import spacy
@@ -30,15 +19,16 @@ nlp = spacy.load("en_core_web_sm")
 # Download tokenizer
 nltk.download('punkt')
 
-# Define a simple grammar
+# === Define a simple grammar with punctuation support ===
 grammar = CFG.fromstring("""
-  S -> NP VP
+  S -> NP VP | NP VP PUNCT
   NP -> Det N | Det Adj N | 'John' | 'Mary' | 'I'
   VP -> V NP | V
   Det -> 'a' | 'the' | 'my'
   N -> 'cat' | 'dog' | 'telescope' | 'man' | 'apple'
   V -> 'saw' | 'loved' | 'ate'
   Adj -> 'big' | 'small'
+  PUNCT -> '.' | ',' | '?' | '!'
 """)
 
 cfg_parser = nltk.ChartParser(grammar)
@@ -52,6 +42,7 @@ def extract_sentences_from_docx(filepath):
 # === Parse with NLTK CFG ===
 def parse_with_cfg(sentence):
     tokens = nltk.word_tokenize(sentence)
+    
     try:
         for tree in cfg_parser.parse(tokens):
             print(f"\nCFG Parse Tree for: \"{sentence}\"")
@@ -60,6 +51,8 @@ def parse_with_cfg(sentence):
             break  # Only show first valid parse
     except ValueError as e:
         print(f"CFG parsing failed for: {sentence} | Reason: {e}")
+    except Exception as e:
+        print(f"Parsing error: {e}")
 
 # === Parse with spaCy dependency parser ===
 def parse_with_spacy(sentence):
@@ -70,7 +63,8 @@ def parse_with_spacy(sentence):
 
     # Optional: render and save HTML
     html = displacy.render(doc, style="dep")
-    with open("dependency_" + "_".join(sentence.split()[:3]) + ".html", "w", encoding="utf-8") as f:
+    filename = "dependency_" + "_".join(sentence.split()[:3]) + ".html"
+    with open(filename, "w", encoding="utf-8") as f:
         f.write(html)
 
 # === Main ===
@@ -97,10 +91,3 @@ if __name__ == "__main__":
         process_docx(file_path)
     else:
         print("No file selected.")
-
-
-#Features:
-#Processes each sentence with:
-#CFG parse using NLTK (if grammar matches)
-#Dependency parse using spaCy (robust, modern)
-#Saves HTML dependency trees for offline viewing.
