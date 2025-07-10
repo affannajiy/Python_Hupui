@@ -1,0 +1,130 @@
+#Takes a Word document (.docx) as input from the user.
+
+#Extracts all sentences from the document.
+
+#Parses each sentence using a Context-Free Grammar (CFG) or dependency parser.
+
+#Displays or saves the corresponding parse tree.
+
+
+#Dependencies Required:
+pip install nltk python-docx spacy
+python -m nltk.downloader punkt
+python -m spacy download en_core_web_sm
+pip install nltk spacy python-docx cairosvg
+python -m nltk.downloader punkt
+python -m spacy download en_core_web_sm
+
+
+#Python Code to Generate and Save Parse Tree Images
+
+import nltk
+import spacy
+from nltk import CFG
+from nltk.tree import Tree
+from nltk.draw.tree import draw_trees
+from nltk.tokenize import sent_tokenize
+from docx import Document
+from spacy import displacy
+import os
+import uuid
+from PIL import Image
+import cairosvg
+
+# Load spaCy model
+nlp = spacy.load("en_core_web_sm")
+
+nltk.download('punkt')
+
+# Define simple CFG grammar (can be extended)
+grammar = CFG.fromstring("""
+  S -> NP VP
+  NP -> Det N | Det Adj N | 'John' | 'Mary' | 'I'
+  VP -> V NP | V
+  Det -> 'a' | 'the' | 'my'
+  N -> 'cat' | 'dog' | 'telescope' | 'man' | 'apple'
+  V -> 'saw' | 'loved' | 'ate'
+  Adj -> 'big' | 'small'
+""")
+
+cfg_parser = nltk.ChartParser(grammar)
+
+# Output directories
+os.makedirs("output/cfg_trees", exist_ok=True)
+os.makedirs("output/dep_trees", exist_ok=True)
+
+# Extract sentences from DOCX
+def extract_sentences_from_docx(filepath):
+    doc = Document(filepath)
+    full_text = " ".join(p.text for p in doc.paragraphs if p.text.strip())
+    return sent_tokenize(full_text)
+
+# Save CFG Tree to image
+def save_cfg_tree_image(tree, filename):
+    fig = tree.draw()
+    path = os.path.join("output/cfg_trees", filename + ".ps")
+    fig.print_to_file(path)
+    # Convert PS to PNG using PIL or system utility
+    # For now, skip automatic conversion, unless you have Ghostscript/Pillow handling it
+
+# Save spaCy dependency tree to PNG via SVG
+def save_spacy_dependency_image(doc, filename):
+    svg = displacy.render(doc, style="dep", jupyter=False)
+    svg_path = os.path.join("output/dep_trees", filename + ".svg")
+    png_path = os.path.join("output/dep_trees", filename + ".png")
+    
+    with open(svg_path, "w", encoding="utf-8") as f:
+        f.write(svg)
+    
+    # Convert SVG to PNG
+    cairosvg.svg2png(url=svg_path, write_to=png_path)
+
+# Parse each sentence
+def process_sentence(sentence, index):
+    print(f"\nProcessing Sentence {index+1}: {sentence}")
+    
+    # CFG Parsing
+    tokens = nltk.word_tokenize(sentence)
+    try:
+        for tree in cfg_parser.parse(tokens):
+            print(tree)
+            filename = f"cfg_tree_{index+1}"
+            tree.pretty_print()
+            tree.save(os.path.join("output/cfg_trees", filename + ".ps"))
+            break
+    except Exception as e:
+        print("CFG Parsing failed:", e)
+
+    # Dependency Parsing
+    doc = nlp(sentence)
+    filename = f"dep_tree_{index+1}"
+    save_spacy_dependency_image(doc, filename)
+
+# Main processor
+def process_docx(filepath):
+    sentences = extract_sentences_from_docx(filepath)
+    print(f"\nFound {len(sentences)} sentences.")
+    
+    for idx, sent in enumerate(sentences):
+        process_sentence(sent, idx)
+
+# Entry point
+if __name__ == "__main__":
+    import tkinter as tk
+    from tkinter import filedialog
+
+    root = tk.Tk()
+    root.withdraw()
+    print("Select a Word document (.docx)...")
+    file_path = filedialog.askopenfilename(filetypes=[("Word Documents", "*.docx")])
+
+    if file_path:
+        process_docx(file_path)
+        print("\n✅ All sentence trees saved to 'output/' folders.")
+    else:
+        print("❌ No file selected.")
+
+
+#output Structure
+#output/cfg_trees/: CFG parse trees as .ps or .png
+#output/dep_trees/: spaCy dependency trees as .png
