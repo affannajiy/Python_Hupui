@@ -1,7 +1,7 @@
 import sys
-import heapq
-from collections import deque, defaultdict
 import random
+import heapq
+from collections import deque
 from datetime import datetime
 import matplotlib.pyplot as plt
 import requests
@@ -15,10 +15,16 @@ class WeatherPredictionApp(QWidget):
         super().__init__()
         self.current_month = datetime.now().month
         self.api_key = "a64a2f0c3f1535863073a63c1b494d18"  # OpenWeatherMap API key
-        self.countries = ['USA', 'Japan', 'Australia', 'France', 'Brazil', 'Malaysia']
+        self.countries = {
+            'USA': {'lat': 37.09, 'lon': -95.71},
+            'Japan': {'lat': 36.20, 'lon': 138.25},
+            'Australia': {'lat': -25.27, 'lon': 133.78},
+            'France': {'lat': 46.23, 'lon': 2.21},
+            'Brazil': {'lat': -14.24, 'lon': -51.93},
+            'Malaysia': {'lat': 4.21, 'lon': 101.98}
+        }
         self.initUI()
-        self.load_country_data()
-
+        
     def initUI(self):
         self.setWindowTitle("Advanced Weather Prediction App")
         self.setGeometry(100, 100, 1000, 800)
@@ -35,7 +41,7 @@ class WeatherPredictionApp(QWidget):
         
         self.country_label = QLabel("Select Country:")
         self.country_combo = QComboBox()
-        self.country_combo.addItems(self.countries)
+        self.country_combo.addItems(self.countries.keys())
         
         country_layout.addWidget(self.country_label)
         country_layout.addWidget(self.country_combo)
@@ -124,48 +130,69 @@ class WeatherPredictionApp(QWidget):
             }
         """)
     
-    def load_country_data(self):
-        """Load historical weather data for countries"""
-        self.historical_data = {
-            'USA': {
-                1: (5, 80, 4), 2: (7, 70, 5), 3: (12, 65, 6), 4: (16, 60, 7),
-                5: (20, 55, 8), 6: (25, 50, 9), 7: (28, 45, 10), 8: (27, 50, 9),
-                9: (23, 55, 7), 10: (17, 60, 6), 11: (11, 70, 4), 12: (6, 75, 3)
-            },
-            'Japan': {
-                1: (6, 50, 5), 2: (7, 60, 5), 3: (10, 90, 6), 4: (16, 120, 6),
-                5: (20, 130, 6), 6: (24, 180, 5), 7: (28, 150, 6), 8: (29, 140, 7),
-                9: (25, 180, 5), 10: (19, 130, 6), 11: (14, 80, 6), 12: (9, 50, 5)
-            },
-            'Australia': {
-                1: (28, 80, 8), 2: (27, 90, 8), 3: (25, 70, 8), 4: (22, 50, 7),
-                5: (18, 40, 7), 6: (15, 30, 6), 7: (14, 30, 7), 8: (16, 30, 8),
-                9: (19, 35, 8), 10: (22, 50, 8), 11: (25, 60, 9), 12: (27, 70, 9)
-            },
-            'France': {
-                1: (6, 60, 3), 2: (7, 50, 4), 3: (11, 55, 5), 4: (14, 50, 6),
-                5: (18, 60, 7), 6: (22, 50, 8), 7: (24, 40, 9), 8: (24, 50, 8),
-                9: (20, 60, 7), 10: (15, 70, 5), 11: (10, 70, 4), 12: (7, 60, 3)
-            },
-            'Brazil': {
-                1: (28, 200, 6), 2: (28, 180, 6), 3: (28, 170, 6), 4: (27, 120, 7),
-                5: (26, 90, 7), 6: (25, 60, 8), 7: (25, 50, 8), 8: (26, 50, 8),
-                9: (26, 80, 7), 10: (27, 120, 6), 11: (27, 150, 6), 12: (28, 190, 6)
-            },
-            'Malaysia': {
-                1: (28, 200, 6), 2: (28, 180, 6), 3: (29, 220, 6), 4: (29, 250, 6),
-                5: (29, 200, 6), 6: (29, 180, 6), 7: (28, 180, 6), 8: (28, 190, 6),
-                9: (28, 200, 6), 10: (28, 250, 5), 11: (28, 300, 5), 12: (28, 250, 5)
-            }
-        }
-    
-    def calculate_weather_score(self, temp, rain, sunshine):
-        """Calculate a weather score between 20-25 based on weather parameters"""
-        temp_score = min(max((temp - 10) / 25 * 10, 0), 10)
-        rain_score = min(max((100 - rain) / 100 * 10, 0), 10)
-        sunshine_score = min(max(sunshine / 10 * 10, 0), 10)
+    def get_historical_weather(self, lat, lon, month):
+        """Get historical weather data from OpenWeather API (using current data as proxy)"""
+        url = f"https://api.openweathermap.org/data/2.5/weather?lat={lat}&lon={lon}&appid={self.api_key}"
         
-        total = temp_score * 0.5 + rain_score * 0.3 + sunshine_score * 0.2
+        try:
+            response = requests.get(url)
+            response.raise_for_status()
+            data = response.json()
+            
+            if data['cod'] == 200:
+                temp_k = data["main"]["temp"]
+                temp_c = temp_k - 273.15
+                humidity = data["main"]["humidity"]
+                weather_id = data["weather"][0]["id"]
+                
+                # Adjust values based on month (simulating seasonal variation)
+                if month in [12, 1, 2]:  # Winter in northern hemisphere
+                    if lat > 0:  # Northern hemisphere
+                        temp_c += random.uniform(-10, 5)
+                    else:  # Southern hemisphere
+                        temp_c += random.uniform(5, 10)
+                elif month in [6, 7, 8]:  # Summer in northern hemisphere
+                    if lat > 0:  # Northern hemisphere
+                        temp_c += random.uniform(5, 15)
+                    else:  # Southern hemisphere
+                        temp_c += random.uniform(-5, 5)
+                
+                # Estimate rainfall based on weather condition
+                if weather_id >= 500 and weather_id <= 531:  # Rain
+                    rainfall = random.uniform(10, 50)
+                elif weather_id >= 300 and weather_id <= 321:  # Drizzle
+                    rainfall = random.uniform(5, 15)
+                else:
+                    rainfall = random.uniform(0, 5)
+                
+                # Estimate sunshine hours (more in summer)
+                if month in [6, 7, 8] and lat > 0:  # Northern summer
+                    sunshine = random.uniform(8, 12)
+                elif month in [12, 1, 2] and lat > 0:  # Northern winter
+                    sunshine = random.uniform(4, 8)
+                elif month in [12, 1, 2] and lat < 0:  # Southern summer
+                    sunshine = random.uniform(8, 12)
+                else:
+                    sunshine = random.uniform(6, 10)
+                
+                return temp_c, rainfall, sunshine
+            
+        except requests.exceptions.RequestException:
+            pass
+        
+        # Fallback values if API fails
+        return random.uniform(10, 30), random.uniform(0, 20), random.uniform(5, 10)
+    
+    def calculate_weather_score(self, temp, rain, humidity, wind_speed):
+        """Calculate a weather score based on real-time weather parameters"""
+        # Normalize parameters (weights can be adjusted)
+        temp_score = min(max((20 - abs(temp - 22)) / 20 * 10, 0), 10)  # Ideal around 22°C
+        rain_score = min(max((100 - rain) / 100 * 10, 0), 10)  # Less rain is better
+        humidity_score = min(max((100 - humidity) / 100 * 10, 0), 10)  # Lower humidity is better
+        wind_score = min(max((20 - wind_speed) / 20 * 10, 0), 10)  # Less wind is better
+        
+        # Combine scores and scale to 20-25 range
+        total = temp_score * 0.4 + rain_score * 0.3 + humidity_score * 0.2 + wind_score * 0.1
         return round(20 + (total / 10) * 5, 1)
     
     def get_weather_prediction(self):
@@ -173,43 +200,53 @@ class WeatherPredictionApp(QWidget):
         country = self.country_combo.currentText()
         month = self.month_combo.currentIndex() + 1
         
-        if country not in self.historical_data:
+        if country not in self.countries:
             self.output_text.append(f"No data available for {country}")
             return
             
-        if month not in self.historical_data[country]:
-            self.output_text.append(f"No data available for month {month}")
-            return
-            
-        temp, rain, sunshine = self.historical_data[country][month]
-        # Add some randomness to simulate prediction
-        temp += random.uniform(-2, 2)
-        rain += random.uniform(-10, 10)
-        sunshine += random.uniform(-1, 1)
+        lat, lon = self.countries[country]['lat'], self.countries[country]['lon']
+        temp, rain, sunshine = self.get_historical_weather(lat, lon, month)
         
-        score = self.calculate_weather_score(temp, rain, sunshine)
+        # Get additional weather data for score calculation
+        url = f"https://api.openweathermap.org/data/2.5/weather?lat={lat}&lon={lon}&appid={self.api_key}"
+        try:
+            response = requests.get(url)
+            data = response.json()
+            humidity = data["main"]["humidity"]
+            wind_speed = data["wind"]["speed"]
+        except:
+            humidity = random.uniform(40, 80)
+            wind_speed = random.uniform(0, 10)
+        
+        score = self.calculate_weather_score(temp, rain, humidity, wind_speed)
         
         result = (f"\nWeather prediction for {country} in {datetime(2023, month, 1).strftime('%B')}:\n"
                  f"Temperature: {round(temp, 1)}°C\n"
                  f"Rainfall: {round(rain, 1)}mm\n"
+                 f"Humidity: {round(humidity, 1)}%\n"
+                 f"Wind Speed: {round(wind_speed, 1)} m/s\n"
                  f"Sunshine hours: {round(sunshine, 1)}\n"
                  f"Weather score: {score}/25\n")
         
         self.output_text.append(result)
+        return temp, rain, sunshine, humidity, wind_speed, score
     
     def bfs_search_best_month(self):
         """Uninformed search (BFS) to find the best month for a country"""
         country = self.country_combo.currentText()
         start_month = self.current_month
         
-        if country not in self.historical_data:
+        if country not in self.countries:
             self.output_text.append(f"No data available for {country}")
             return
             
+        lat, lon = self.countries[country]['lat'], self.countries[country]['lon']
+        
         visited = set()
         queue = deque([start_month])
         best_month = None
         best_score = 0
+        best_data = None
         
         while queue:
             month = queue.popleft()
@@ -219,12 +256,12 @@ class WeatherPredictionApp(QWidget):
                 
             visited.add(month)
             
-            temp, rain, sunshine = self.historical_data[country][month]
-            score = self.calculate_weather_score(temp, rain, sunshine)
+            temp, rain, sunshine, humidity, wind_speed, score = self.get_weather_prediction_for_month(country, month)
                 
             if score > best_score:
                 best_score = score
                 best_month = month
+                best_data = (temp, rain, sunshine, humidity, wind_speed)
                 
             # Explore adjacent months
             prev_month = month - 1 if month > 1 else 12
@@ -237,7 +274,14 @@ class WeatherPredictionApp(QWidget):
                 
         if best_month:
             month_name = datetime(2023, best_month, 1).strftime('%B')
-            self.output_text.append(f"\nBest month to visit {country} (BFS): {month_name} (Score: {best_score}/25)")
+            result = (f"\nBest month to visit {country} (BFS): {month_name}\n"
+                     f"Temperature: {round(best_data[0], 1)}°C\n"
+                     f"Rainfall: {round(best_data[1], 1)}mm\n"
+                     f"Humidity: {round(best_data[3], 1)}%\n"
+                     f"Wind Speed: {round(best_data[4], 1)} m/s\n"
+                     f"Sunshine hours: {round(best_data[2], 1)}\n"
+                     f"Weather score: {best_score}/25\n")
+            self.output_text.append(result)
         else:
             self.output_text.append("No suitable month found.")
     
@@ -246,18 +290,20 @@ class WeatherPredictionApp(QWidget):
         country = self.country_combo.currentText()
         start_month = self.current_month
         
-        if country not in self.historical_data:
+        if country not in self.countries:
             self.output_text.append(f"No data available for {country}")
             return
             
+        lat, lon = self.countries[country]['lat'], self.countries[country]['lon']
+        
         def heuristic(month, target_score=25):
-            if country == 'Australia' or country == 'Brazil':
+            if self.countries[country]['lat'] < 0:  # Southern hemisphere
                 ideal_month = 12
             else:
                 ideal_month = 6
                 
             month_diff = min(abs(month - ideal_month), 12 - abs(month - ideal_month))
-            return (month_diff / 6) * 5
+            return (month_diff / 6) * 5  # Max 5 points penalty
             
         open_set = []
         heapq.heappush(open_set, (0, start_month))
@@ -271,18 +317,19 @@ class WeatherPredictionApp(QWidget):
         
         best_month = None
         best_score = 0
+        best_data = None
         
         while open_set:
             _, current = heapq.heappop(open_set)
             
-            temp, rain, sunshine = self.historical_data[country][current]
-            current_score = self.calculate_weather_score(temp, rain, sunshine)
+            temp, rain, sunshine, humidity, wind_speed, current_score = self.get_weather_prediction_for_month(country, current)
             
             if current_score > best_score:
                 best_score = current_score
                 best_month = current
+                best_data = (temp, rain, sunshine, humidity, wind_speed)
                 
-            if current_score >= 24:
+            if current_score >= 24:  # Good enough score
                 break
                 
             neighbors = [
@@ -291,8 +338,7 @@ class WeatherPredictionApp(QWidget):
             ]
             
             for neighbor in neighbors:
-                temp, rain, sunshine = self.historical_data[country][neighbor]
-                neighbor_score = self.calculate_weather_score(temp, rain, sunshine)
+                temp, rain, sunshine, humidity, wind_speed, neighbor_score = self.get_weather_prediction_for_month(country, neighbor)
                     
                 tentative_g_score = g_score[current] + (25 - neighbor_score)
                 
@@ -305,22 +351,54 @@ class WeatherPredictionApp(QWidget):
                         
         if best_month:
             month_name = datetime(2023, best_month, 1).strftime('%B')
-            self.output_text.append(f"\nBest month to visit {country} (A*): {month_name} (Score: {best_score}/25)")
+            result = (f"\nBest month to visit {country} (A*): {month_name}\n"
+                     f"Temperature: {round(best_data[0], 1)}°C\n"
+                     f"Rainfall: {round(best_data[1], 1)}mm\n"
+                     f"Humidity: {round(best_data[3], 1)}%\n"
+                     f"Wind Speed: {round(best_data[4], 1)} m/s\n"
+                     f"Sunshine hours: {round(best_data[2], 1)}\n"
+                     f"Weather score: {best_score}/25\n")
+            self.output_text.append(result)
         else:
             self.output_text.append("No suitable month found.")
+    
+    def get_weather_prediction_for_month(self, country, month):
+        """Helper method to get weather prediction for a specific month"""
+        lat, lon = self.countries[country]['lat'], self.countries[country]['lon']
+        temp, rain, sunshine = self.get_historical_weather(lat, lon, month)
+        
+        # Get additional weather data for score calculation
+        url = f"https://api.openweathermap.org/data/2.5/weather?lat={lat}&lon={lon}&appid={self.api_key}"
+        try:
+            response = requests.get(url)
+            data = response.json()
+            humidity = data["main"]["humidity"]
+            wind_speed = data["wind"]["speed"]
+        except:
+            humidity = random.uniform(40, 80)
+            wind_speed = random.uniform(0, 10)
+        
+        score = self.calculate_weather_score(temp, rain, humidity, wind_speed)
+        return temp, rain, sunshine, humidity, wind_speed, score
     
     def visualize_weather_data(self):
         """Visualize weather data for selected country"""
         country = self.country_combo.currentText()
         
-        if country not in self.historical_data:
+        if country not in self.countries:
             self.output_text.append(f"No data available for {country}")
             return
             
         months = list(range(1, 13))
-        temps = [self.historical_data[country][m][0] for m in months]
-        rains = [self.historical_data[country][m][1] for m in months]
-        sunshine = [self.historical_data[country][m][2] for m in months]
+        temps = []
+        rains = []
+        sunshine_hours = []
+        
+        for month in months:
+            temp, rain, sunshine, _, _, _ = self.get_weather_prediction_for_month(country, month)
+            temps.append(temp)
+            rains.append(rain)
+            sunshine_hours.append(sunshine)
         
         self.figure.clear()
         
@@ -339,7 +417,7 @@ class WeatherPredictionApp(QWidget):
         
         # Sunshine plot
         ax3 = self.figure.add_subplot(3, 1, 3)
-        ax3.plot(months, sunshine, 'y-')
+        ax3.plot(months, sunshine_hours, 'y-')
         ax3.set_ylabel('Sunshine (hours)')
         ax3.set_xlabel('Month')
         ax3.grid(True)
@@ -379,13 +457,18 @@ class WeatherPredictionApp(QWidget):
         weather_desc = data["weather"][0]["description"]
         wind_speed = data["wind"]["speed"]
         
+        # Calculate score for current weather
+        rainfall = 0  # Current API doesn't provide rainfall, we'd need a different endpoint
+        score = self.calculate_weather_score(temp_c, rainfall, humidity, wind_speed)
+        
         emoji = self.get_weather_emoji(weather_id)
         
         result = (f"\nCurrent weather in {city}, {country}:\n"
                  f"Temperature: {temp_c:.1f}°C\n"
                  f"Weather: {weather_desc} {emoji}\n"
                  f"Humidity: {humidity}%\n"
-                 f"Wind Speed: {wind_speed} m/s\n")
+                 f"Wind Speed: {wind_speed} m/s\n"
+                 f"Weather score: {score}/25\n")
         
         self.output_text.append(result)
     
